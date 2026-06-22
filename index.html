@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ═══ SEO ═══ -->
+  <title>BMI Calculator — Free Body Mass Index Calculator</title>
+  <meta name="description" content="Free BMI calculator using WHO standards. Calculate your Body Mass Index instantly with our visual gauge. No signup required." />
+  <meta name="keywords" content="BMI calculator, body mass index calculator, BMI chart, healthy weight calculator" />
+  <link rel="canonical" href="https://checkbmi.cc" />
+  <meta property="og:title" content="BMI Calculator — Free Body Mass Index Calculator" />
+  <meta property="og:description" content="Calculate your BMI instantly with our visual gauge. WHO standard formula. No signup required." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://checkbmi.cc" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- ═══ Tailwind CSS CDN ═══ -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- ═══ Custom Styles ═══ -->
+  <style>
+    /* ── Base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                   'Helvetica Neue', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Unit-Toggle Tabs ────────────────────────────────── */
+    .unit-tab {
+      flex: 1;
+      padding: 0.75rem 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      color: #6B7280;
+      background: white;
+      border: none;
+      border-bottom: 2.5px solid transparent;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .unit-tab:hover { color: #374151; }
+    .unit-tab.active {
+      color: #15803D;
+      background: #F0FDF4;
+      border-bottom-color: #16A34A;
+    }
+    .unit-tab:focus-visible {
+      outline: 3px solid #16A34A;
+      outline-offset: -3px;
+    }
+
+    /* ── Input Fields ────────────────────────────────────── */
+    .bmi-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid #E2E8F0;
+      border-radius: 0.625rem;
+      font-size: 1.125rem;
+      color: #1E293B;
+      background: white;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      /* hide spinner arrows */
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+    .bmi-input::-webkit-outer-spin-button,
+    .bmi-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .bmi-input:focus {
+      outline: none;
+      border-color: #16A34A;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.14);
+    }
+    .bmi-input::placeholder { color: #CBD5E1; }
+    .bmi-input:invalid:not(:placeholder-shown) {
+      border-color: #EF4444;
+    }
+
+    /* ── Reset Button ────────────────────────────────────── */
+    .reset-btn {
+      padding: 0.45rem 1.2rem;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 0.5rem;
+      color: #94A3B8;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: white;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .reset-btn:hover { border-color: #94A3B8; color: #64748B; }
+    .reset-btn:focus-visible { outline: 3px solid #16A34A; outline-offset: 2px; }
+
+    /* ── Gauge Needle (SVG transform via JS) ─────────────── */
+    #gauge-needle-group {
+      /* transform handled via setAttribute('transform', ...) + rAF lerp */
+    }
+
+    /* ── Affiliate Cards ─────────────────────────────────── */
+    .aff-card {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+      padding: 0.875rem 1rem;
+      border: 1.5px solid #F1F5F9;
+      border-radius: 0.875rem;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+    }
+    .aff-card:hover {
+      border-color: #BBF7D0;
+      box-shadow: 0 2px 12px rgba(22, 163, 74, 0.10);
+      transform: translateY(-1px);
+    }
+    .aff-card:focus-visible { outline: 3px solid #16A34A; outline-offset: 2px; }
+    .aff-icon {
+      width: 2.75rem; height: 2.75rem;
+      border-radius: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.375rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Reduce motion ───────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      .bmi-input, .unit-tab, .aff-card, .reset-btn { transition: none; }
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen py-6 px-4">
+<div class="max-w-md mx-auto">
+
+  <!-- ════════════════════════════════════════════════════════
+       HEADER
+  ════════════════════════════════════════════════════════ -->
+  <header class="text-center mb-6">
+    <div class="flex items-center justify-center gap-2 mb-1">
+      <span aria-hidden="true" class="text-green-600 text-2xl leading-none">⚕</span>
+      <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">BMI Calculator</h1>
+    </div>
+    <p class="text-sm text-gray-400">WHO Standard Formula · Real-Time · Free</p>
+  </header>
+
+  <!-- ════════════════════════════════════════════════════════
+       INPUT CARD
+  ════════════════════════════════════════════════════════ -->
+  <section
+    class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 overflow-hidden"
+    aria-label="BMI input form"
+  >
+    <!-- Unit Toggle -->
+    <div
+      class="flex border-b border-gray-100"
+      role="group"
+      aria-label="Select unit system"
+    >
+      <button
+        id="btn-standard"
+        class="unit-tab active"
+        onclick="setUnit('standard')"
+        aria-pressed="true"
+        aria-label="Standard units: feet, inches, and pounds"
+      >📏 Standard&nbsp;(ft / lbs)</button>
+      <button
+        id="btn-metric"
+        class="unit-tab"
+        onclick="setUnit('metric')"
+        aria-pressed="false"
+        aria-label="Metric units: centimeters and kilograms"
+      >📐 Metric&nbsp;(cm / kg)</button>
+    </div>
+
+    <div class="p-5">
+
+      <!-- Standard Inputs -->
+      <div id="standard-inputs">
+        <div class="grid grid-cols-2 gap-3 mb-1">
+
+          <div>
+            <label
+              for="inp-feet"
+              class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide"
+            >Height — Feet</label>
+            <input
+              type="number" id="inp-feet"
+              class="bmi-input"
+              placeholder="5"
+              min="1" max="9" step="1"
+              inputmode="decimal"
+              aria-label="Height in feet"
+              aria-describedby="height-hint-std"
+              aria-required="true"
+              oninput="calculate()"
+            />
+          </div>
+
+          <div>
+            <label
+              for="inp-inches"
+              class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide"
+            >Height — Inches</label>
+            <input
+              type="number" id="inp-inches"
+              class="bmi-input"
+              placeholder="9"
+              min="0" max="11" step="1"
+              inputmode="decimal"
+              aria-label="Height additional inches"
+              aria-describedby="height-hint-std"
+              oninput="calculate()"
+            />
+          </div>
+
+        </div>
+        <p id="height-hint-std" class="text-xs text-gray-400 mb-4 pl-0.5">
+          Enter total height as feet + remaining inches (e.g. 5 ft 9 in)
+        </p>
+
+        <div>
+          <label
+            for="inp-lbs"
+            class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide"
+          >Weight (lbs)</label>
+          <input
+            type="number" id="inp-lbs"
+            class="bmi-input"
+            placeholder="155"
+            min="1" max="1500" step="0.1"
+            inputmode="decimal"
+            aria-label="Weight in pounds"
+            aria-required="true"
+            oninput="calculate()"
+          />
+        </div>
+      </div><!-- /standard-inputs -->
+
+      <!-- Metric Inputs -->
+      <div id="metric-inputs" class="hidden">
+        <div class="mb-4">
+          <label
+            for="inp-cm"
+            class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide"
+          >Height (cm)</label>
+          <input
+            type="number" id="inp-cm"
+            class="bmi-input"
+            placeholder="175"
+            min="50" max="300" step="0.1"
+            inputmode="decimal"
+            aria-label="Height in centimeters"
+            aria-required="true"
+            oninput="calculate()"
+          />
+        </div>
+        <div>
+          <label
+            for="inp-kg"
+            class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide"
+          >Weight (kg)</label>
+          <input
+            type="number" id="inp-kg"
+            class="bmi-input"
+            placeholder="70"
+            min="1" max="700" step="0.1"
+            inputmode="decimal"
+            aria-label="Weight in kilograms"
+            aria-required="true"
+            oninput="calculate()"
+          />
+        </div>
+      </div><!-- /metric-inputs -->
+
+      <div class="flex justify-end mt-5">
+        <button
+          class="reset-btn"
+          onclick="resetForm()"
+          aria-label="Reset all fields and clear results"
+        >↺&nbsp;Reset</button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       GAUGE + RESULTS CARD
+  ════════════════════════════════════════════════════════ -->
+  <section
+    class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4"
+    aria-label="BMI results"
+  >
+
+    <!-- ─── SVG Gauge ─────────────────────────────────────── -->
+    <!--
+      ViewBox: 0 0 400 215
+      Center of arc pivot: (200, 200)
+      Radius: 150  |  Stroke-width: 28
+      BMI range: 10–40 mapped to math-angles 180°→0°
+      Needle: polygon pointing straight up by default,
+              rotated via SVG rotate(angle, 200, 200)
+    -->
+    <svg
+      id="bmi-gauge"
+      viewBox="0 0 400 215"
+      width="100%"
+      role="img"
+      aria-label="BMI gauge"
+      aria-describedby="gauge-desc"
+      aria-valuenow="0"
+      aria-valuemin="10"
+      aria-valuemax="40"
+    >
+      <desc id="gauge-desc">
+        Semicircle BMI gauge. Color zones: blue = underweight below 18.5,
+        green = normal 18.5 to 24.9, orange = overweight 25 to 29.9,
+        red = obese 30 and above. A needle moves to show your current BMI.
+      </desc>
+
+      <!-- Background track -->
+      <path
+        d="M 50 200 A 150 150 0 0 1 350 200"
+        fill="none" stroke="#F1F5F9" stroke-width="28"
+      />
+
+      <!-- ── Color Zone Arcs (paths set by initGauge()) ───── -->
+      <path id="arc-blue"  fill="none" stroke="#60A5FA" stroke-width="28" stroke-linecap="butt"/><!-- Underweight -->
+      <path id="arc-green" fill="none" stroke="#4ADE80" stroke-width="28" stroke-linecap="butt"/><!-- Normal      -->
+      <path id="arc-amber" fill="none" stroke="#FBBF24" stroke-width="28" stroke-linecap="butt"/><!-- Overweight  -->
+      <path id="arc-red"   fill="none" stroke="#F87171" stroke-width="28" stroke-linecap="butt"/><!-- Obese       -->
+
+      <!-- ── Tick lines at zone boundaries (added by JS) ───── -->
+      <g id="gauge-ticks" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+
+      <!-- ── Needle ──────────────────────────────────────── -->
+      <!--
+        Default orientation: tip at (200, 52) — pointing straight up.
+        rotate(-90, 200, 200) → 9 o'clock (BMI 10 / left end)
+        rotate(  0, 200, 200) → 12 o'clock (BMI 25 / midpoint)
+        rotate(+90, 200, 200) → 3 o'clock (BMI 40 / right end)
+        Initial value: -95 (just past left edge = "no data")
+      -->
+      <g id="gauge-needle-group" transform="rotate(-95, 200, 200)" aria-hidden="true">
+        <!-- Needle polygon: base ~6px wide at y=196, tip at y=52 -->
+        <polygon points="200,52 197,196 203,196" fill="#1E293B"/>
+        <!-- Center hub -->
+        <circle cx="200" cy="200" r="9" fill="#1E293B"/>
+        <circle cx="200" cy="200" r="4.5" fill="white"/>
+      </g>
+
+      <!-- ── Large BMI Number ────────────────────────────── -->
+      <text
+        id="bmi-val-text"
+        x="200" y="165"
+        text-anchor="middle"
+        font-size="46"
+        font-weight="800"
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+        fill="#1E293B"
+        aria-hidden="true"
+      >—</text>
+      <text
+        x="200" y="185"
+        text-anchor="middle"
+        font-size="12"
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+        fill="#94A3B8"
+        letter-spacing="0.08em"
+        aria-hidden="true"
+      >BMI</text>
+
+      <!-- ── Scale end labels ───────────────────────────── -->
+      <text x="46"  y="213" text-anchor="middle" font-size="11" fill="#CBD5E1"
+            font-family="-apple-system, sans-serif" aria-hidden="true">10</text>
+      <text x="354" y="213" text-anchor="middle" font-size="11" fill="#CBD5E1"
+            font-family="-apple-system, sans-serif" aria-hidden="true">40</text>
+
+      <!-- ── Boundary value labels (set by JS) ─────────── -->
+      <g id="gauge-labels" font-size="10" fill="#9CA3AF" text-anchor="middle"
+         font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+         aria-hidden="true"/>
+
+    </svg><!-- /svg -->
+
+    <!-- ─── Live Results Region ───────────────────────────── -->
+    <div
+      id="results-region"
+      aria-live="polite"
+      aria-atomic="true"
+      class="mt-1 text-center space-y-3"
+    >
+      <!-- Category badge -->
+      <div id="category-badge">
+        <span class="text-sm text-gray-400">Enter height and weight above to see your BMI</span>
+      </div>
+
+      <!-- Healthy weight range -->
+      <div id="healthy-range" class="hidden rounded-xl bg-green-50 border border-green-100 px-4 py-3">
+        <p class="text-sm font-medium text-green-700" id="healthy-range-text"></p>
+      </div>
+    </div>
+
+  </section><!-- /gauge card -->
+
+  <!-- ════════════════════════════════════════════════════════
+       WHO REFERENCE CARD
+  ════════════════════════════════════════════════════════ -->
+  <section
+    class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4"
+    aria-label="BMI categories reference"
+  >
+    <h2 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">BMI Categories — WHO Standard</h2>
+    <dl class="grid grid-cols-2 gap-2 text-sm">
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full bg-blue-400 shrink-0" aria-hidden="true"></span>
+        <div><dt class="font-semibold text-gray-700 inline">Underweight</dt><dd class="text-gray-500 inline"> &lt;18.5</dd></div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full bg-green-400 shrink-0" aria-hidden="true"></span>
+        <div><dt class="font-semibold text-gray-700 inline">Normal</dt><dd class="text-gray-500 inline"> 18.5–24.9</dd></div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full bg-amber-400 shrink-0" aria-hidden="true"></span>
+        <div><dt class="font-semibold text-gray-700 inline">Overweight</dt><dd class="text-gray-500 inline"> 25–29.9</dd></div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full bg-red-400 shrink-0" aria-hidden="true"></span>
+        <div><dt class="font-semibold text-gray-700 inline">Obese</dt><dd class="text-gray-500 inline"> ≥30</dd></div>
+      </div>
+    </dl>
+    <p class="mt-3 text-xs text-gray-400">
+      BMI is a population-level screening tool, not a clinical diagnosis. Muscle mass,
+      bone density, and distribution of body fat are not captured by BMI. Consult a
+      qualified healthcare provider for personalised medical advice.
+    </p>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       ADSENSE PLACEHOLDER 1
+       (Uncomment and replace ca-pub / slot values to activate)
+  ════════════════════════════════════════════════════════ -->
+  <!--
+  <div class="mb-4">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-XXXXXXXXXXXXXXXXXX"
+         data-ad-slot="1111111111"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+  -->
+
+  <!-- ════════════════════════════════════════════════════════
+       AFFILIATE SECTION
+  ════════════════════════════════════════════════════════ -->
+  <section
+    class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4"
+    aria-label="Health goal tools"
+  >
+    <h2 class="font-bold text-gray-800 mb-0.5">Reach Your Health Goals</h2>
+    <p class="text-sm text-gray-400 mb-4">Tools to help you get to — or stay in — a healthy range.</p>
+
+    <div class="space-y-3">
+
+      <!-- MyFitnessPal -->
+      <a
+        href="#myfitnesspal-affiliate-placeholder"
+        class="aff-card"
+        aria-label="MyFitnessPal Premium — track calories, macros, and workouts"
+        rel="noopener sponsored"
+      >
+        <div class="aff-icon bg-blue-50">🥗</div>
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-gray-800 text-sm leading-tight">MyFitnessPal Premium</p>
+          <p class="text-xs text-gray-400 mt-0.5">Track calories, macros &amp; workouts</p>
+        </div>
+        <span class="text-green-500 font-bold text-lg leading-none" aria-hidden="true">›</span>
+      </a>
+
+      <!-- Noom -->
+      <a
+        href="#noom-affiliate-placeholder"
+        class="aff-card"
+        aria-label="Noom — psychology-based weight management program"
+        rel="noopener sponsored"
+      >
+        <div class="aff-icon bg-green-50">🧠</div>
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-gray-800 text-sm leading-tight">Noom</p>
+          <p class="text-xs text-gray-400 mt-0.5">Psychology-based weight management</p>
+        </div>
+        <span class="text-green-500 font-bold text-lg leading-none" aria-hidden="true">›</span>
+      </a>
+
+      <!-- Fitness Equipment -->
+      <a
+        href="#fitness-equipment-affiliate-placeholder"
+        class="aff-card"
+        aria-label="Home fitness equipment — shop quality home gym gear"
+        rel="noopener sponsored"
+      >
+        <div class="aff-icon bg-orange-50">🏋️</div>
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-gray-800 text-sm leading-tight">Home Gym Equipment</p>
+          <p class="text-xs text-gray-400 mt-0.5">Quality gear for your home gym</p>
+        </div>
+        <span class="text-green-500 font-bold text-lg leading-none" aria-hidden="true">›</span>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       ADSENSE PLACEHOLDER 2
+  ════════════════════════════════════════════════════════ -->
+  <!--
+  <div class="mb-4">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-XXXXXXXXXXXXXXXXXX"
+         data-ad-slot="2222222222"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+  -->
+
+  <!-- ════════════════════════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════════════════════ -->
+  <footer class="text-center text-xs text-gray-400 pb-6 space-y-1">
+    <p>Uses the WHO standard BMI formula: weight(kg) ÷ height(m)²</p>
+    <p>For informational purposes only — not medical advice.</p>
+    <p class="mt-2">
+      © 2025 BMI Calculator ·
+      <a href="#" class="underline hover:text-gray-600">Privacy</a> ·
+      <a href="#" class="underline hover:text-gray-600">About</a>
+    </p>
+  </footer>
+
+</div><!-- /max-w-md -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ─────────────────────────────────────────────────────────
+   GAUGE CONSTANTS
+   cx=200, cy=200, r=150, strokeWidth=28
+   BMI range 10–40 → math angles 180°→0°
+   Needle default: points straight up (12 o'clock)
+   SVG rotate(-90,200,200) → 9 o'clock (BMI 10)
+   SVG rotate(+90,200,200) → 3 o'clock (BMI 40)
+───────────────────────────────────────────────────────── */
+const G = {
+  cx: 200, cy: 200, r: 150, sw: 28,
+  minBMI: 10, maxBMI: 40,
+  zones: [
+    { id: 'arc-blue',  minB: 10,   maxB: 18.5, color: '#60A5FA', label: 'Underweight' },
+    { id: 'arc-green', minB: 18.5, maxB: 25,   color: '#4ADE80', label: 'Normal'      },
+    { id: 'arc-amber', minB: 25,   maxB: 30,   color: '#FBBF24', label: 'Overweight'  },
+    { id: 'arc-red',   minB: 30,   maxB: 40,   color: '#F87171', label: 'Obese'       }
+  ]
+};
+
+/* ─────────────────────────────────────────────────────────
+   MATH HELPERS
+───────────────────────────────────────────────────────── */
+
+/** BMI value → math angle in degrees (180° at BMI 10, 0° at BMI 40) */
+function bmiToMathAngle(bmi) {
+  const t = (bmi - G.minBMI) / (G.maxBMI - G.minBMI);
+  return 180 - t * 180;
+}
+
+/**
+ * Math angle (0=right, 90=up, CCW) → SVG coordinate point
+ * Note: SVG y-axis is flipped, so we negate sin.
+ */
+function angleToPoint(angleDeg, radius) {
+  const rad = angleDeg * Math.PI / 180;
+  return {
+    x: G.cx + radius * Math.cos(rad),
+    y: G.cy - radius * Math.sin(rad)
+  };
+}
+
+/**
+ * Build an SVG arc path string between two BMI values.
+ * sweep=1 (CW in SVG) traces the upper semicircle left→right.
+ */
+function arcPath(minBMI, maxBMI) {
+  const a1 = bmiToMathAngle(minBMI);
+  const a2 = bmiToMathAngle(maxBMI);
+  const p1 = angleToPoint(a1, G.r);
+  const p2 = angleToPoint(a2, G.r);
+  const span = a1 - a2; // always positive
+  const largeArc = span > 180 ? 1 : 0;
+  return `M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} ` +
+         `A ${G.r} ${G.r} 0 ${largeArc} 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+}
+
+/**
+ * BMI → SVG rotate() angle for the needle.
+ * Maps BMI 10 → −90°, BMI 25 → 0°, BMI 40 → +90°
+ */
+function bmiToNeedleAngle(bmi) {
+  const clamped = Math.max(G.minBMI, Math.min(G.maxBMI, bmi));
+  return -90 + ((clamped - G.minBMI) / (G.maxBMI - G.minBMI)) * 180;
+}
+
+/* ─────────────────────────────────────────────────────────
+   NEEDLE ANIMATION  (rAF-based lerp)
+───────────────────────────────────────────────────────── */
+const needle = {
+  current: -95,
+  target:  -95,
+  rafId:   null,
+  el:      null
+};
+
+function setNeedleTarget(angle) {
+  needle.target = angle;
+  if (!needle.rafId) needle.rafId = requestAnimationFrame(animNeedle);
+}
+
+function animNeedle() {
+  const diff = needle.target - needle.current;
+  if (Math.abs(diff) < 0.08) {
+    needle.current = needle.target;
+    needle.rafId = null;
+  } else {
+    needle.current += diff * 0.14;
+    needle.rafId = requestAnimationFrame(animNeedle);
+  }
+  needle.el.setAttribute(
+    'transform',
+    `rotate(${needle.current.toFixed(3)}, ${G.cx}, ${G.cy})`
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   GAUGE INITIALISATION
+───────────────────────────────────────────────────────── */
+function initGauge() {
+  needle.el = document.getElementById('gauge-needle-group');
+
+  // Draw colored arc segments
+  G.zones.forEach(z => {
+    document.getElementById(z.id).setAttribute('d', arcPath(z.minB, z.maxB));
+  });
+
+  // Tick marks at zone boundaries
+  const tickBMIs = [18.5, 25, 30];
+  const tickGroup = document.getElementById('gauge-ticks');
+  const ri = G.r - G.sw / 2 - 2;
+  const ro = G.r + G.sw / 2 + 2;
+
+  tickBMIs.forEach(bmi => {
+    const angle = bmiToMathAngle(bmi);
+    const pi = angleToPoint(angle, ri);
+    const po = angleToPoint(angle, ro);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', pi.x.toFixed(2)); line.setAttribute('y1', pi.y.toFixed(2));
+    line.setAttribute('x2', po.x.toFixed(2)); line.setAttribute('y2', po.y.toFixed(2));
+    line.setAttribute('stroke', 'white');
+    line.setAttribute('stroke-width', '3');
+    tickGroup.appendChild(line);
+  });
+
+  // Boundary value labels (inner side of arc)
+  const labelBMIs = [
+    { bmi: 18.5, label: '18.5' },
+    { bmi: 25,   label: '25'   },
+    { bmi: 30,   label: '30'   }
+  ];
+  const labelGroup = document.getElementById('gauge-labels');
+  const labelR = G.r - G.sw / 2 - 14;
+
+  labelBMIs.forEach(({ bmi, label }) => {
+    const angle = bmiToMathAngle(bmi);
+    const pos   = angleToPoint(angle, labelR);
+    const text  = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', pos.x.toFixed(2));
+    text.setAttribute('y', (pos.y + 3.5).toFixed(2));
+    text.setAttribute('text-anchor', 'middle');
+    text.textContent = label;
+    labelGroup.appendChild(text);
+  });
+}
+
+/* ─────────────────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────────────────── */
+let currentUnit = 'standard';
+
+/* ─────────────────────────────────────────────────────────
+   UNIT TOGGLE
+───────────────────────────────────────────────────────── */
+function setUnit(unit) {
+  currentUnit = unit;
+
+  const isStd = unit === 'standard';
+  document.getElementById('standard-inputs').classList.toggle('hidden', !isStd);
+  document.getElementById('metric-inputs').classList.toggle('hidden',   isStd);
+
+  const bStd = document.getElementById('btn-standard');
+  const bMet = document.getElementById('btn-metric');
+
+  bStd.classList.toggle('active',  isStd);
+  bStd.setAttribute('aria-pressed', String(isStd));
+  bMet.classList.toggle('active',  !isStd);
+  bMet.setAttribute('aria-pressed', String(!isStd));
+
+  calculate();
+}
+
+/* ─────────────────────────────────────────────────────────
+   CALCULATE
+───────────────────────────────────────────────────────── */
+function calculate() {
+  let weightKg, heightM;
+
+  if (currentUnit === 'standard') {
+    const feet   = parseFloat(document.getElementById('inp-feet').value);
+    const inches = parseFloat(document.getElementById('inp-inches').value) || 0;
+    const lbs    = parseFloat(document.getElementById('inp-lbs').value);
+
+    if (!isFinite(feet) || !isFinite(lbs) || feet <= 0 || lbs <= 0) { clearResults(); return; }
+
+    heightM  = (feet * 12 + inches) * 0.0254;
+    weightKg = lbs * 0.45359237;
+
+  } else {
+    const cm = parseFloat(document.getElementById('inp-cm').value);
+    const kg = parseFloat(document.getElementById('inp-kg').value);
+
+    if (!isFinite(cm) || !isFinite(kg) || cm <= 0 || kg <= 0) { clearResults(); return; }
+
+    heightM  = cm / 100;
+    weightKg = kg;
+  }
+
+  // Sanity bounds
+  if (heightM < 0.5 || heightM > 2.8 || weightKg < 2 || weightKg > 650) { clearResults(); return; }
+
+  const bmi = weightKg / (heightM * heightM);
+  updateResults(bmi, heightM);
+}
+
+/* ─────────────────────────────────────────────────────────
+   UPDATE DISPLAY
+───────────────────────────────────────────────────────── */
+const CAT = {
+  Underweight: { bg: 'bg-blue-50',   border: 'border-blue-200',   text: 'text-blue-700',  dot: '#60A5FA' },
+  Normal:      { bg: 'bg-green-50',  border: 'border-green-200',  text: 'text-green-700', dot: '#4ADE80' },
+  Overweight:  { bg: 'bg-amber-50',  border: 'border-amber-200',  text: 'text-amber-700', dot: '#FBBF24' },
+  Obese:       { bg: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-700',   dot: '#F87171' }
+};
+
+function getCategory(bmi) {
+  if (bmi < 18.5) return 'Underweight';
+  if (bmi < 25)   return 'Normal';
+  if (bmi < 30)   return 'Overweight';
+  return 'Obese';
+}
+
+function updateResults(bmi, heightM) {
+  const bmiDisplay = (Math.round(bmi * 10) / 10).toFixed(1);
+  const cat        = getCategory(bmi);
+  const style      = CAT[cat];
+
+  // ── Needle
+  setNeedleTarget(bmiToNeedleAngle(bmi));
+
+  // ── Gauge ARIA
+  const gaugeEl = document.getElementById('bmi-gauge');
+  gaugeEl.setAttribute('aria-valuenow', bmiDisplay);
+  gaugeEl.setAttribute('aria-valuetext', `BMI ${bmiDisplay} — ${cat}`);
+
+  // ── Large BMI number on gauge
+  document.getElementById('bmi-val-text').textContent = bmiDisplay;
+
+  // ── Category badge
+  const badge = document.getElementById('category-badge');
+  badge.innerHTML =
+    `<div class="inline-flex items-center gap-2 px-4 py-2 rounded-full border font-bold text-base ` +
+    `${style.bg} ${style.border} ${style.text}">` +
+    `<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">` +
+    `<circle cx="6" cy="6" r="6" fill="${style.dot}"/></svg>` +
+    `${cat}` +
+    `</div>`;
+
+  // ── Healthy weight range
+  const minKg = 18.5 * heightM * heightM;
+  const maxKg = 24.9 * heightM * heightM;
+  let rangeText;
+
+  if (currentUnit === 'standard') {
+    const minLbs = Math.round(minKg / 0.45359237);
+    const maxLbs = Math.round(maxKg / 0.45359237);
+    rangeText = `For your height, a healthy weight is <strong>${minLbs}–${maxLbs} lbs</strong>`;
+  } else {
+    rangeText =
+      `For your height, a healthy weight is ` +
+      `<strong>${(Math.round(minKg * 10) / 10).toFixed(1)}–` +
+      `${(Math.round(maxKg * 10) / 10).toFixed(1)} kg</strong>`;
+  }
+
+  const rangeEl = document.getElementById('healthy-range');
+  document.getElementById('healthy-range-text').innerHTML = rangeText;
+  rangeEl.classList.remove('hidden');
+}
+
+/* ─────────────────────────────────────────────────────────
+   CLEAR / RESET
+───────────────────────────────────────────────────────── */
+function clearResults() {
+  setNeedleTarget(-95);
+  document.getElementById('bmi-val-text').textContent = '—';
+  document.getElementById('bmi-gauge').setAttribute('aria-valuenow', '0');
+  document.getElementById('bmi-gauge').removeAttribute('aria-valuetext');
+  document.getElementById('category-badge').innerHTML =
+    '<span class="text-sm text-gray-400">Enter height and weight above to see your BMI</span>';
+  document.getElementById('healthy-range').classList.add('hidden');
+}
+
+function resetForm() {
+  ['inp-feet', 'inp-inches', 'inp-lbs', 'inp-cm', 'inp-kg'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  clearResults();
+}
+
+/* ─────────────────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', initGauge);
+</script>
+</body>
+</html>
